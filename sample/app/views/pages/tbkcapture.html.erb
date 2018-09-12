@@ -1,0 +1,139 @@
+
+<%
+   require 'libwebpay'
+   require_relative '../certificates/certcapture'
+
+
+   if (params[:option])
+     action = params[:option]
+   else
+     action = "init"
+   end
+
+   #Se crea objeto para invocar la libreria
+   libwebpay = Libwebpay.new
+
+   #se rescatan variables de los certificados
+   certificates = CertCapture.new
+   config = libwebpay.getConfiguration
+
+   config.commerce_code = certificates.commerce_code
+   config.environment = certificates.environment
+   config.private_key = certificates.private_key
+   config.public_cert = certificates.public_cert
+   config.webpay_cert = certificates.webpay_cert
+
+
+   webpay = libwebpay.getWebpay(config)
+
+
+%><h1>Ejemplos Webpay - Transaccion Captura</h1><%
+
+   case action
+     when "init"
+
+       urlNextStep = request.base_url+'/pages/tbkcapture?option=capture'
+
+%>
+
+    <h2>Step: Init</h2>
+
+    <form id="formulario" action="<%=urlNextStep%>" method="post">
+      <fieldset>
+        <legend>Formulario de Captura</legend><br/><br/>
+        <label>authorizationCode:</label>
+        <input id="authorizationCode" name="authorizationCode" type="text" />&nbsp;&nbsp;&nbsp;
+        <label>captureAmount:</label>
+        <input id="captureAmount" name="captureAmount" type="text" />&nbsp;&nbsp;&nbsp;
+        <label>buyOrder:</label>
+        <input id="buyOrder" name="buyOrder" type="text" />&nbsp;&nbsp;&nbsp;<br/><br/><br/>
+        <input name="enviar" type="submit" value="Enviar" />
+      </fieldset>
+    </form>
+    <br>
+    <a href="../">&laquo; volver a index</a>
+
+
+
+<%
+   when "capture"
+
+     urlNextStep = request.base_url+'/pages/tbkcapture?option=end'
+
+     buyOrder          = params[:buyOrder]
+     authorizationCode = params[:authorizationCode]
+     captureAmount     = params[:captureAmount]
+
+     #llamada Capture
+     result = webpay.getCaptureTransaction.capture(authorizationCode, captureAmount, buyOrder)
+
+     if(result['error_desc'] == 'TRX_OK')
+       authorizationCodeResp = result['authorizationCode']
+       authorizationDate = result['authorizationDate']
+       capturedAmount 	 = result['capturedAmount']
+       token 	           = result['token']
+     end
+
+
+%>
+    <h2>Step: Capture</h2>
+    <div style="background-color:lightyellow;">
+      <h3>request</h3>
+      [buyOrder] = "<%= buyOrder %>", [authorizationCode] = "<%= authorizationCode %>", [captureAmount] = "<%= captureAmount %>"
+    </div>
+    <div style="background-color:lightgrey;">
+      <h3>result</h3>
+        <% if result['error_desc'] == 'TRX_OK'%>
+       [authorizationCode] = "<%= authorizationCodeResp %>", [authorizationDate] = "<%= authorizationDate %>", [capturedAmount] = "<%= capturedAmount %>", [token] = "<%= token %>"
+        <%else %>[error] = <%=result['error_desc']%>
+        <%end%>
+
+    </div>
+    <% if authorizationCodeResp != nil%>
+        <p><samp>Pago ACEPTADO por webpay (se deben guardar datos para mostrar voucher)</samp></p>
+        <form action='<%=urlNextStep%>' method="post"><input type="hidden" name="token_ws" value='<%=token%>'>
+          <input type="submit" value="Continuar >>">
+        </form>
+        <br><br>
+        <a href="../">&laquo; volver a index</a>
+
+    <% else  %>
+        <p><samp>Pago RECHAZADO por webpay.</samp></p>
+        <a href="../">&laquo; volver a index</a>
+    <% end  %>
+
+<%
+   when "end"
+
+     if (params[:token_ws])
+       token = params[:token_ws]
+     end
+
+%>
+    <h2>Step: End</h2>
+    <div style="background-color:lightyellow;">
+      <h3>request</h3>
+      no request
+      <br>
+      <br>
+    </div>
+
+    <div style="background-color:lightgrey;">
+      <h3>result</h3>
+      "[token_ws] =  <%=token%> "
+    </div>
+
+    <p><samp>Transacion Finalizada</samp></p>
+    <br>
+    <a href="../">&laquo; volver a index</a>
+
+<%
+   end
+
+%>
+
+
+
+
+
+

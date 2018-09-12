@@ -1,0 +1,305 @@
+
+<%
+   require 'libwebpay'
+   require_relative '../certificates/certcomplete'
+
+
+   if (params[:option])
+     action = params[:option]
+     puts 'capturando action: '+action.to_s
+   else
+     action = "init"
+   end
+
+   #Se crea objeto para invocar la libreria
+   libwebpay = Libwebpay.new
+
+   #se rescatan variables de los certificados
+   certificates = CertComplete.new
+   config = libwebpay.getConfiguration
+
+   config.commerce_code = certificates.commerce_code
+   config.environment = certificates.environment
+   config.private_key = certificates.private_key
+   config.public_cert = certificates.public_cert
+   config.webpay_cert = certificates.webpay_cert
+
+
+  webpay = libwebpay.getWebpay(config)
+
+
+
+%><h1>Ejemplos Webpay - Transaccion Complete</h1><%
+
+   case action
+     when "init"
+
+       urlNextStep = request.base_url+'/pages/tbkcomplete?option=queryShare'
+
+       #Monto de la transacción
+       amount = 9990
+
+       #Orden de compra del comercio
+       buyOrder = rand(1111111111..9999999999)
+
+       #(Opcional) Identificador de sesión
+       sessionId = '62376753453'
+
+       #Fecha de expiración de tarjeta, formato YY/MM
+       cardExpirationDate = '18/04'
+
+       #Código de verificación de la tarjeta
+       cvv = '123'
+
+       #Número de la tarjeta
+       cardNumber = '4051885600446623'
+
+
+       #Llamada a libreria Webpay initTransaction
+       result = webpay.getCompleteTransaction.initComplete(amount, buyOrder, sessionId, cardExpirationDate, cvv, cardNumber)
+
+       if(result['error_desc'] == 'TRX_OK')
+          token = result['token']
+       end
+
+%>
+    <h2>Step: Init Complete Transaction</h2>
+        <div style="background-color:lightyellow;">
+          <h3>request</h3>
+          [amount] = "<%=amount%>", [buyOrder] = "<%=buyOrder%>", [sessionId] = "<%=sessionId%>", [cardExpirationDate] = "<%=cardExpirationDate%>", [cvv] = "<%=cvv%>", [cardNumber] = "<%=cardNumber%>"
+        </div>
+        <div style="background-color:lightgrey;">
+          <h3>result</h3>
+          <% if result['error_desc'] == 'TRX_OK'%>
+              [token] =  "<%=token%>"
+          <%else %>[error] = <%=result['error_desc']%>
+          <%end%>
+        </div>
+
+        <% if token  %>
+        <p><samp>Operacion realizada con exito.</samp></p>
+        <br><form action='<%=urlNextStep%>' method="post">
+          <input type="hidden" name="TBK_TOKEN" value='<%=token%>'>
+          <input type="hidden" name="BUY_ORDER" value='<%=buyOrder%>'>
+          <input type="submit" value="Continuar >>">
+        </form>
+        <br><br>
+        <a href="../">&laquo; volver a index</a>
+    <% else  %>
+        <p><samp>Operacion RECHAZADA por webpay.</samp></p>
+        <a href="../">&laquo; volver a index</a>
+    <% end  %>
+
+
+<%
+   when "queryShare"
+
+     if (params[:TBK_TOKEN])
+       token = params[:TBK_TOKEN]
+     end
+
+     buyOrder = params[:BUY_ORDER]
+     shareNumber = 2;
+
+     urlNextStep = request.base_url+'/pages/tbkcomplete?option=authorize'
+
+     #llamada a queryShare
+     result = webpay.getCompleteTransaction.queryShare(token, buyOrder, shareNumber)
+
+     if(result['error_desc'] == 'TRX_OK')
+         buyOrder 		= result['buyOrder']
+         queryId 		  = result['queryId']
+         shareAmount 	= result['shareAmount']
+         tokenResp 	      = result['token']
+     end
+
+%>
+
+    <h2>Step: queryShare</h2>
+    <div style="background-color:lightyellow;">
+      <h3>request</h3>
+      [token] =  <%=token%>, [buyOrder] =  <%=buyOrder%>, [shareNumber] =  <%=shareNumber%>
+    </div>
+    <div style="background-color:lightgrey;">
+      <h3>result</h3>
+      <% if result['error_desc'] == 'TRX_OK'%>
+          [buyOrder] = "<%= buyOrder %>", [queryId] = "<%= queryId %>", [shareAmount] = "<%= shareAmount %>", [token] = "<%= tokenResp %>"
+      <%else %>[error] = <%=result['error_desc']%>
+      <%end%>
+
+    </div>
+    <% if tokenResp %>
+        <p><samp>Operacion realizada con exito.</samp></p>
+        <form action='<%=urlNextStep%>' method="post">
+          <input type="hidden" name="TBK_TOKEN" value='<%=token%>'>
+          <input type="hidden" name="BUY_ORDER" value='<%=buyOrder%>'>
+          <input type="hidden" name="QUERY_ID" value='<%=queryId%>'>
+          <input type="submit" value="Continuar >>">
+        </form>
+        <br><br>
+        <a href="../">&laquo; volver a index</a>
+
+    <% else  %>
+        <p><samp>Pago RECHAZADO por webpay.</samp></p>
+        <a href="../">&laquo; volver a index</a>
+    <% end  %>
+
+
+<%
+   when "authorize"
+
+     if (params[:TBK_TOKEN])
+       token = params[:TBK_TOKEN]
+     end
+     buyOrder = params[:BUY_ORDER]
+     idQueryShare = params[:QUERY_ID]
+
+     urlNextStep = request.base_url+'/pages/tbkcomplete?option=end'
+
+     deferredPeriodIndex = 0
+     gracePeriod = false
+
+
+     #llamada a authorize
+     result = webpay.getCompleteTransaction.authorize(token, buyOrder, gracePeriod, idQueryShare, deferredPeriodIndex);
+
+
+     if(result['error_desc'] == 'TRX_OK')
+         responseCode 		  = result['responseCode']
+         buyOrderDoc 			  = Nokogiri::HTML(result['buyOrder'])
+         buyOrderResp       = buyOrderDoc.at_xpath("//buyorder").text
+         sharesNumber 			= result['sharesNumber']
+         amount 						= result['amount']
+         commerceCode 			= result['commerceCode']
+         authorizationCode	= result['authorizationCode']
+         paymentTypeCode 	  = result['paymentTypeCode']
+         sessionId 			    = result['sessionId']
+         transactionDate 	  = result['transactionDate']
+   end
+
+
+%>
+
+    <h2>Step: Authorize</h2>
+    <div style="background-color:lightyellow;">
+      <h3>request</h3>
+      [token] =  <%=token%>, [buyOrder] =  <%=buyOrder%>, [gracePeriod] =  <%=gracePeriod%>, [idQueryShare] =  <%=idQueryShare%>, [deferredPeriodIndex] =  <%=deferredPeriodIndex%>,
+
+    </div>
+    <div style="background-color:lightgrey;">
+      <h3>result</h3>
+      <% if result['error_desc'] == 'TRX_OK'%>
+          [responseCode] = "<%= responseCode %>", [buyOrder] = "<%= buyOrderResp %>", [sharesNumber] = "<%= sharesNumber %>", [amount] = "<%= amount %>", [commerceCode] = " <%= commerceCode %>
+          [authorizationCode] = "<%= authorizationCode %>", [paymentTypeCode] = "<%= paymentTypeCode %>", [sessionId] = "<%= sessionId %>", [transactionDate] = "<%= transactionDate %>"
+      <%else %>[error] = <%=result['error_desc']%>
+      <%end%>
+
+    </div>
+    <% if responseCode == '0' %>
+        <p><samp>Operacion realizada con exito.</samp></p>
+        <form action='<%=urlNextStep%>' method="post">
+          <input type="hidden" name="authorizationCode" value="<%=authorizationCode%>">
+          <input type="hidden" name="token_ws" value="<%=token%>">
+          <input type="hidden" name="authorizedAmount" value="<%=amount%>">
+          <input type="hidden" name="buyOrder" value="<%=buyOrder%>">
+          <input type="hidden" name="queryId" value='<%=idQueryShare%>'>
+          <input type="submit" value="Continuar >>">
+        </form>
+        <br><br>
+        <a href="../">&laquo; volver a index</a>
+
+    <% else  %>
+        <p><samp>Operacion RECHAZADA por webpay.</samp></p>
+        <a href="../">&laquo; volver a index</a>
+    <% end  %>
+
+
+<%
+   when "end"
+
+     #Identificador único de la compra generado por el comercio
+     token = params[:token_ws]
+     authorizationCode = params[:authorizationCode]
+     authorizedAmount = params[:authorizedAmount]
+     buyOrder = params[:buyOrder]
+     queryId = params[:queryId]
+
+     urlNextStep = request.base_url+'/pages/tbkcomplete?option=nullify'
+
+
+%>
+
+    <h2>Step: End</h2>
+    <div style="background-color:lightyellow;">
+      <h3>request</h3>
+      [No Request]
+
+</div>
+<div style="background-color:lightgrey;">
+  <h3>result</h3>
+  [token] = "<%= token %>", [authorizationCode] = "<%= authorizationCode %>", [queryId] = "<%= queryId %>", [buyOrder] = "<%= buyOrder %>"
+
+</div>
+<p><samp>Operacion realizada con exito.</samp></p>
+<form action='<%=urlNextStep%>' method="post">
+  <input type="hidden" name="authorizationCode" value="<%=authorizationCode%>">
+  <input type="hidden" name="token_ws" value="<%=token%>">
+  <input type="hidden" name="authorizedAmount" value="<%=authorizedAmount%>">
+  <input type="hidden" name="buyOrder" value="<%=buyOrder%>">
+  <input type="hidden" name="queryId" value=""<%=queryId%>">
+  <input type="submit" value="Anular >>">
+</form>
+<br><br>
+<a href="../">&laquo; volver a index</a>
+
+
+
+<%
+   when "nullify"
+
+     buyOrder          = params[:buyOrder]
+     authorizationCode = params[:authorizationCode]
+     authorizedAmount  = params[:authorizedAmount]
+     nullifyAmount     = authorizedAmount
+
+     #llamada Nullify
+     result = webpay.getNullifyTransaction.nullify(authorizationCode, authorizedAmount, buyOrder, nullifyAmount, config.commerce_code)
+
+     if(result['error_desc'] == 'TRX_OK')
+         authorizationCodeResp = result['authorizationCode']
+         authorizationDate = result['authorizationDate']
+         balance           = result['balance']
+         nullifiedAmount 	 = result['nullifiedAmount']
+         token 	           = result['token']
+      end
+
+%>
+    <h2>Step: Nullify</h2>
+    <div style="background-color:lightyellow;">
+      <h3>request</h3>
+      [authorizationCode] = <%=authorizationCode%>, [authorizedAmount] = <%=authorizedAmount%>, [buyOrder] = <%=buyOrder%>,  [nullifyAmount] = <%=nullifyAmount%>
+    </div>
+    <div style="background-color:lightgrey;">
+      <h3>result</h3>
+      <% if result['error_desc'] == 'TRX_OK'%>
+          [authorizationCode] = "<%= authorizationCodeResp %>", [authorizationDate] = "<%= authorizationDate %>", [balance] = "<%= balance %>" [nullifiedAmount] = "<%= nullifiedAmount %>", [token] = "<%= token %>"
+      <%else %>[error] = <%=result['error_desc']%>
+      <%end%>
+
+    </div>
+    <% if authorizationCodeResp != nil%>
+        <p><samp>Transaccion anulada con exito.</samp></p>
+        <br>
+        <a href="../">&laquo; volver a index</a>
+
+    <% else  %>
+        <p><samp>Operacion rechazada por Webpay.</samp></p>
+        <a href="../">&laquo; volver a index</a>
+    <% end  %>
+
+<%
+   end
+
+%>
+
+

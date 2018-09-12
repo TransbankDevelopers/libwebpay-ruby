@@ -1,0 +1,290 @@
+
+<%
+   require 'libwebpay'
+   require_relative '../certificates/certoneclick'
+
+   urlReturn = request.base_url+'/pages/tbkoneclick?option=finishInscription'
+
+
+   if (params[:option])
+     action = params[:option]
+     puts 'capturando action: '+action.to_s
+   else
+     action = "initInscription"
+   end
+
+   #Se crea objeto para invocar la libreria
+   libwebpay = Libwebpay.new
+
+   #se rescatan variables de los certificados
+   certificates = CertOneClick.new
+   config = libwebpay.getConfiguration
+
+   config.commerce_code = certificates.commerce_code
+   config.environment = certificates.environment
+   config.private_key = certificates.private_key
+   config.public_cert = certificates.public_cert
+   config.webpay_cert = certificates.webpay_cert
+
+
+  webpay = libwebpay.getWebpay(config)
+
+   # Nombre de usuario o cliente en el sistema del comercio
+   username = 'username'
+
+   # Dirección de correo electrónico registrada por el comercio
+   email = 'username@allware.cl'
+
+
+%><h1>Ejemplos Webpay - Transaccion OneClick</h1><%
+
+   case action
+     when "initInscription"
+       #Llamada a libreria Webpay initTransaction
+       result = webpay.getOneClickTransaction.initInscription(username, email, urlReturn)
+
+       if(result['error_desc'] == 'TRX_OK')
+           token = result['token']
+           url   = result['url']
+       end
+%>
+    <h2>Step: Init Inscription</h2>
+    <div style="background-color:lightyellow;">
+      <h3>request</h3>
+      [username] = "<%= username %>", [email] = "<%= email %>", [urlReturn] = "<%= urlReturn %>"
+    </div>
+    <div style="background-color:lightgrey;">
+      <h3>result</h3>
+      <% if result['error_desc'] == 'TRX_OK'%>
+          [token_ws] =  "<%=token%>", [urlWebpay] =  "<%=url%>"
+      <%else %>[error] = <%=result['error_desc']%>
+      <%end%>
+
+    </div>
+
+    <% if token  %>
+        <p><samp>Operacion realizada con exito.</samp></p>
+        <form action='<%=url%>' method="post">
+          <input type="hidden" name="TBK_TOKEN" value='<%=token%>'><input type="submit" value="Continuar >>">
+        </form>
+        <br><br>
+        <a href="../">&laquo; volver a index</a>
+    <% else  %>
+        <p><samp>Operacion RECHAZADA por webpay.</samp></p>
+        <a href="../">&laquo; volver a index</a>
+    <% end  %>
+
+
+<%
+   when "finishInscription"
+
+     if (params[:TBK_TOKEN])
+       token = params[:TBK_TOKEN]
+     end
+
+     urlNextStep = request.base_url+'/pages/tbkoneclick?option=authorize'
+
+     #llamada a finishInscription
+     result = webpay.getOneClickTransaction.finishInscription(token)
+
+     if(result['error_desc'] == 'TRX_OK')
+         responseCode 		= result['responseCode']
+         authCode 				= result['authCode']
+         tbkUser 				  = result['tbkUser']
+         last4CardDigits 	= result['last4CardDigits']
+         creditCardType 	= result['creditCardType']
+     end
+
+%>
+
+    <h2>Step: FinishInscription</h2>
+    <div style="background-color:lightyellow;">
+      <h3>request</h3>
+      "[token_ws] =  <%=token%> "
+    </div>
+    <div style="background-color:lightgrey;">
+      <h3>result</h3>
+      <% if result['error_desc'] == 'TRX_OK'%>
+          [responseCode] = "<%= responseCode %>", [authCode] = "<%= authCode %>", [tbkUser] = "<%= tbkUser %>", [last4CardDigits] = "<%= last4CardDigits %>", [creditCardType] = " <%= creditCardType %>
+    <%else %>[error] = <%=result['error_desc']%>
+      <%end%>
+
+     </div>
+    <% if responseCode == '0' %>
+        <p><samp>Operacion realizada con exito.</samp></p>
+        <form action='<%=urlNextStep%>' method="post">
+          <input type="hidden" name="TBK_TOKEN" value="<%=token%>">
+          <input type="hidden" name="TBK_USER" value="<%=tbkUser%>">
+          <input type="submit" value="Continuar >>">
+        </form>
+        <br><br>
+        <a href="../">&laquo; volver a index</a>
+
+    <% else  %>
+        <p><samp>Pago RECHAZADO por webpay.</samp></p>
+        <a href="../">&laquo; volver a index</a>
+    <% end  %>
+
+
+<%
+   when "authorize"
+
+     if (params[:TBK_TOKEN])
+       token = params[:TBK_TOKEN]
+     end
+
+     urlNextStep = request.base_url+'/pages/tbkoneclick?option=reverse'
+
+     #Identificador único de la inscripción del cliente
+     tbkUser = params[:TBK_USER]
+
+     #Monto del pago en pesos
+     amount = 9200;
+
+     #Identificador único de la compra generado por el comercio
+     buyOrder = rand(1111111..9999999)
+
+
+     #llamada a authorize
+     result = webpay.getOneClickTransaction.authorize(buyOrder, tbkUser, username, amount)
+
+     if(result['error_desc'] == 'TRX_OK')
+       authCode 		    = result['authCode']
+       responseCode 		= result['responseCode']
+       transactionId 	  = result['transactionId']
+       last4CardDigits 	= result['last4CardDigits']
+       creditCardType 	= result['creditCardType']
+     end
+
+%>
+
+    <h2>Step: Authorize</h2>
+    <div style="background-color:lightyellow;">
+      <h3>request</h3>
+      [buyOrder] =  <%=buyOrder%>, [tbkUser] =  <%=tbkUser%>, [username] =  <%=username%>, [amount] =  <%=amount%>,
+
+    </div>
+    <div style="background-color:lightgrey;">
+      <h3>result</h3>
+
+      <% if result['error_desc'] == 'TRX_OK'%>
+          [authorizationCode] = "<%=authCode %>", [creditCardType] = "<%= creditCardType %>", [last4CardDigits] = "<%= last4CardDigits %>", [responseCode] = "<%= responseCode %>", [transactionId] = " <%= transactionId %>"
+      <%else %>[error] = <%=result['error_desc']%>
+      <%end%>
+
+    </div>
+    <% if responseCode == '0' %>
+        <p><samp>Operacion realizada con exito.</samp></p>
+        <form action='<%=urlNextStep%>' method="post">
+          <input type="hidden" name="BUY_ORDER" value="<%=buyOrder%>">
+          <input type="hidden" name="TBK_USER" value="<%=tbkUser%>">
+          <input type="submit" value="Reverse Transaction >>">
+        </form>
+        <br><br>
+        <a href="../">&laquo; volver a index</a>
+
+    <% else  %>
+        <p><samp>Operacion RECHAZADA por webpay.</samp></p>
+        <a href="../">&laquo; volver a index</a>
+    <% end  %>
+
+
+<%
+   when "reverse"
+
+
+     urlNextStep = request.base_url+'/pages/tbkoneclick?option=removeUser'
+
+     #Identificador único de la compra generado por el comercio
+     buyOrder = params[:BUY_ORDER]
+     tbkUser = params[:TBK_USER]
+
+     #llamada a authorize
+     result = webpay.getOneClickTransaction.reverse(buyOrder)
+
+     if(result['error_desc'] == 'TRX_OK')
+        response 		= result['response']
+     end
+
+%>
+
+    <h2>Step: Reverse</h2>
+    <div style="background-color:lightyellow;">
+      <h3>request</h3>
+      [buyOrder] =  <%=buyOrder%>
+
+    </div>
+    <div style="background-color:lightgrey;">
+      <h3>result</h3>
+
+      <% if result['error_desc'] == 'TRX_OK'%>
+          [result] = "<%= response %>"
+      <%else %>[error] = <%=result['error_desc']%>
+      <%end%>
+
+
+    </div>
+    <% if response == 'true' %>
+        <p><samp>Operacion realizada con exito.</samp></p>
+        <form action='<%=urlNextStep%>' method="post">
+          <input type="hidden" name="TBK_USER" value="<%=tbkUser%>">
+          <input type="hidden" name="USERNAME" value="<%=username%>">
+          <input type="submit" value="Remove User >>">
+        </form>
+        <br><br>
+        <a href="../">&laquo; volver a index</a>
+
+    <% else  %>
+        <p><samp>Operacion RECHAZADA por webpay.</samp></p>
+        <a href="../">&laquo; volver a index</a>
+    <% end  %>
+
+
+<%
+   when "removeUser"
+
+
+     #Identificador único de la compra generado por el comercio
+     username = params[:USERNAME]
+     tbkUser = params[:TBK_USER]
+
+     #llamada a authorize
+     result = webpay.getOneClickTransaction.removeUser(tbkUser, username)
+
+     if(result['error_desc'] == 'TRX_OK')
+        response 		= result['response']
+     end
+
+%>
+
+    <h2>Step: Remove User</h2>
+    <div style="background-color:lightyellow;">
+      <h3>request</h3>
+      [tbkUser] =  <%=tbkUser%>, [username] =  <%=username%>
+
+    </div>
+    <div style="background-color:lightgrey;">
+      <h3>result</h3>
+      <% if result['error_desc'] == 'TRX_OK'%>
+          [result] = "<%= response %>"
+      <%else %>[error] = <%=result['error_desc']%>
+      <%end%>
+
+    </div>
+    <% if response == 'true' %>
+        <p><samp>Operacion realizada con exito.</samp></p>
+        <br>
+        <a href="../">&laquo; volver a index</a>
+
+    <% else  %>
+        <p><samp>Operacion RECHAZADA por webpay.</samp></p>
+        <a href="../">&laquo; volver a index</a>
+    <%
+       end
+
+   end
+
+%>
+
+
+

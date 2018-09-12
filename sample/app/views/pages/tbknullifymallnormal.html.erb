@@ -1,0 +1,147 @@
+
+<%
+   require 'libwebpay'
+   require_relative '../certificates/certmallnormal'
+
+
+   if (params[:option])
+     action = params[:option]
+   else
+     action = "init"
+   end
+
+   #Se crea objeto para invocar la libreria
+   libwebpay = Libwebpay.new
+
+   #se rescatan variables de los certificados
+   certificates = CertMallNormal.new
+   config = libwebpay.getConfiguration
+
+   config.commerce_code = certificates.commerce_code
+   config.environment = certificates.environment
+   config.private_key = certificates.private_key
+   config.public_cert = certificates.public_cert
+   config.webpay_cert = certificates.webpay_cert
+
+
+
+  webpay = libwebpay.getWebpay(config)
+
+
+%><h1>Ejemplos Webpay - Transaccion Anulaci&oacute;n</h1><%
+
+   case action
+     when "init"
+
+       urlNextStep = request.base_url+'/pages/tbknullifymallnormal?option=nullify'
+
+%>
+
+    <form id="formulario" action='<%=urlNextStep%>' method="post">
+  <fieldset>
+    <legend>Formulario de Anulaci&oacute;n</legend><br/><br/>
+    <label>CommerceCode:</label>&nbsp;&nbsp;&nbsp;&nbsp;
+    <input id="commercecode" name="commercecode" type="text" />&nbsp;&nbsp;&nbsp;<br/><br/><br/>
+    <label>authorizationCode:</label>
+    <input id="authorizationCode" name="authorizationCode" type="text" />&nbsp;&nbsp;&nbsp;
+    <label>authorizedAmount:</label>
+    <input id="authorizedAmount" name="authorizedAmount" type="text" />&nbsp;&nbsp;&nbsp;
+    <label>buyOrder:</label>
+    <input id="buyOrder" name="buyOrder" type="text" />&nbsp;&nbsp;&nbsp;
+    <label>nullifyAmount:</label>
+    <input id="nullifyAmount" name="nullifyAmount" type="text" /><br/><br/><br/>
+    <input id="campo3" name="enviar" type="submit" value="Enviar" />
+  </fieldset>
+</form>
+    <br><a href="../">&laquo; volver a index</a>
+
+
+
+<%
+   when "nullify"
+
+     urlNextStep = request.base_url+'/pages/tbknullifymallnormal?option=end'
+
+     commercecode      = params[:commercecode]
+     buyOrder          = params[:buyOrder]
+     authorizationCode = params[:authorizationCode]
+     authorizedAmount  = params[:authorizedAmount]
+     nullifyAmount     = params[:nullifyAmount]
+
+
+
+     #llamada Nullify
+        result = webpay.getNullifyTransaction.nullify(authorizationCode, authorizedAmount, buyOrder, nullifyAmount, commercecode)
+
+
+     if(result['error_desc'] == 'TRX_OK')
+         authorizationCoderesp = result['authorizationCode']
+         authorizationDate     = result['authorizationDate']
+         balance               = result['balance']
+         nullifiedAmount 	     = result['nullifiedAmount']
+         token 	               = result['token']
+     end
+
+%>
+    <h2>Step: Nullify</h2>
+    <div style="background-color:lightyellow;">
+      <h3>request</h3>
+      [authorizationCode] = <%=authorizationCode%>, [authorizedAmount] = <%=authorizedAmount%>, [buyOrder] = <%=buyOrder%>,  [nullifyAmount] = <%=nullifyAmount%>,  [commercecode] = <%=commercecode%>
+    </div>
+    <div style="background-color:lightgrey;">
+      <h3>result</h3>
+      <%if result['error_desc'] == 'TRX_OK'%>
+      [authorizationCode] = "<%= authorizationCoderesp %>", [authorizationDate] = "<%= authorizationDate %>", [balance] = "<%= balance %>" [nullifiedAmount] = "<%= nullifiedAmount %>", [token] = "<%= token %>"
+      <%else %>[error] = <%=result['error_desc']%>
+      <%end%>
+
+    </div>
+    <% if authorizationCoderesp != nil%>
+        <p><samp>Transaccion anulada con exito.</samp></p>
+        <form action='<%=urlNextStep%>' method="post"><input type="hidden" name="token_ws" value='<%=token%>'>
+          <input type="submit" value="Continuar >>">
+        </form>
+        <br><br>
+        <a href="../">&laquo; volver a index</a>
+
+    <% else  %>
+        <p><samp>Operacion rechazada por Webpay.</samp></p>
+        <a href="../">&laquo; volver a index</a>
+    <% end  %>
+
+<%
+   when "end"
+
+     if (params[:token_ws])
+       token = params[:token_ws]
+     end
+
+%>
+    <h2>Step: End</h2>
+    <div style="background-color:lightyellow;">
+      <h3>request</h3>
+      no request
+      <br>
+      <br>
+    </div>
+
+    <div style="background-color:lightgrey;">
+      <h3>result</h3>
+      "[token_ws] =  <%=token%> "
+    </div>
+
+    <p><samp>Transacion Finalizada</samp></p>
+    <br>
+    <a href="../">&laquo; volver a index</a>
+
+
+<%
+   end
+
+%>
+
+
+
+
+
+

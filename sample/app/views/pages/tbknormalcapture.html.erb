@@ -1,0 +1,231 @@
+
+<%
+   require 'libwebpay'
+   require_relative '../certificates/certcapture'
+
+   urlReturn = request.base_url+'/pages/tbknormalcapture?option=result'
+   urlFinal = request.base_url+'/pages/tbknormalcapture?option=end'
+   amount = 1000
+   buyOrder = rand(1111111..9999999)
+   sessionId = 'aj2h4kj2'
+
+
+   if (params[:option])
+     action = params[:option]
+   else
+     action = "init"
+   end
+
+   #Se crea objeto para invocar la libreria
+   libwebpay = Libwebpay.new
+
+   #se rescatan variables de los certificados
+   certificates = CertCapture.new
+   config = libwebpay.getConfiguration
+
+   config.commerce_code = certificates.commerce_code
+   config.environment = certificates.environment
+   config.private_key = certificates.private_key
+   config.public_cert = certificates.public_cert
+   config.webpay_cert = certificates.webpay_cert
+
+
+
+  webpay = libwebpay.getWebpay(config)
+
+
+%><h1>Ejemplos Webpay - Transaccion Normal Captura</h1><%
+
+   case action
+     when "init"
+       #Llamada a libreria Webpay initTransaction
+       result = webpay.getNormalTransaction.initTransaction(amount, buyOrder, sessionId, urlReturn, urlFinal)
+
+       token = result['token']
+       url   = result['url']
+%>
+    <h2>Step: Init</h2>
+    <div style="background-color:lightyellow;">
+      <h3>request</h3>
+      [amount] = "<%= amount %>", [buyOrder] = "<%= buyOrder %>", [idSession] = "<%= sessionId %>", [urlReturn] = "<%= urlReturn %>", [urlFinal] = " <%= urlFinal %>
+    </div>
+    <div style="background-color:lightgrey;">
+      <h3>result</h3>
+
+      <% if result['error_desc'] == 'TRX_OK'%>
+          "[url] =  <%=url%>, [token_ws] =  <%=token%> "
+      <%else %>[error] = <%=result['error_desc']%>
+      <%end%>
+
+    </div>
+
+    <% if token  %>
+        <p><samp>Sesion iniciada con exito en Webpay</samp></p>
+        <form action='<%=url%>' method="post">
+          <input type="hidden" name="token_ws" value='<%=token%>'><input type="submit" value="Continuar >>">
+        </form>
+        <br><br>
+        <a href="../">&laquo; volver a index</a>
+    <% else  %>
+        <p><samp>Ocurrio un error en la operacion InitTransaction Webpay.</samp></p>
+        <a href="../">&laquo; volver a index</a>
+    <% end  %>
+
+
+<%
+   when "result"
+
+     if (params[:token_ws])
+       token = params[:token_ws]
+     end
+
+     #llamada a getResult
+     result = webpay.getNormalTransaction.getTransactionResult(token)
+
+     if(result['error_desc'] == 'TRX_OK')
+         accountingdate 		= result['accountingdate']
+         buyorder 					= result['buyorder']
+         cardnumber 				= result['cardnumber']
+         amount 						= result['amount']
+         commercecode 			= result['commercecode']
+         authorizationcode	= result['authorizationcode']
+         paymenttypecode 	  = result['paymenttypecode']
+         responsecode 			= result['responsecode']
+         transactiondate 	  = result['transactiondate']
+         urlredirection 		= result['urlredirection']
+         vci 							  = result['vci']
+     end
+%>
+
+    <h2>Step: Get Result</h2>
+    <div style="background-color:lightyellow;">
+      <h3>request</h3>
+      "[token_ws] =  <%=token%> "
+    </div>
+    <div style="background-color:lightgrey;">
+      <h3>result</h3>
+
+      <% if result['error_desc'] == 'TRX_OK'%>
+          [accountingdate] = "<%= accountingdate %>", [buyorder] = "<%= buyorder %>", [cardnumber] = "<%= cardnumber %>", [amount] = "<%= amount %>", [commercecode] = " <%= commercecode %>
+          [authorizationcode] = "<%= authorizationcode %>", [paymenttypecode] = "<%= paymenttypecode %>", [responsecode] = "<%= responsecode %>", [transactiondate] = "<%= transactiondate %>", [urlredirection] = " <%= urlredirection %>, [vci] = " <%= vci %>
+    <%else %>[error] = <%=result['error_desc']%>
+      <%end%>
+
+</div>
+    <% if responsecode == '0' %>
+        <p><samp>Pago ACEPTADO por webpay (se deben guardar datos para mostrar voucher)</samp></p>
+        <form action='<%=urlredirection%>' method="post"><input type="hidden" name="token_ws" value='<%=token%>'>
+          <input type="submit" value="Continuar >>">
+        </form>
+        <br><br>
+        <a href="../">&laquo; volver a index</a>
+
+    <% else  %>
+        <p><samp>Pago RECHAZADO por webpay.</samp></p>
+        <a href="../">&laquo; volver a index</a>
+    <% end  %>
+
+    <script>window.localStorage.clear();</script>
+    <script>localStorage.setItem("authorizationCode", "<%=authorizationcode%>");</script>
+    <script>localStorage.setItem("captureAmount", "<%=amount%>");</script>
+    <script>localStorage.setItem("buyOrder", "<%=buyorder%>");</script>
+
+
+<%
+   when "end"
+
+
+     urlNextStep = request.base_url+'/pages/tbknormalcapture?option=capture'
+
+     token = params[:token_ws]
+     buyOrder = params[:buyOrder]
+     authorizationCode = params[:authorizationCode]
+     captureAmount = params[:captureAmount]
+
+
+%>
+    <h2>Step: End</h2>
+    <div style="background-color:lightyellow;">
+      <h3>request</h3>
+      no request
+      <br>
+      <br>
+    </div>
+
+    <div style="background-color:lightgrey;">
+      <h3>result</h3>
+      "[token] =  <%=token%> "
+    </div>
+
+    <p><samp>Transacion Finalizada</samp></p>
+    <br><form action="<%=urlNextStep%>" method="post">
+  <input type="hidden" name="authorizationCode" id="authorizationCode" value="<%=authorizationCode%>">
+  <input type="hidden" name="buyOrder" id="buyOrder" value="<%=buyOrder%>">
+  <input type="hidden" name="captureAmount" id="captureAmount" value="<%=captureAmount%>">
+  <input type="hidden" name="token_ws" id="token_ws" value="<%=token%>">
+  <input type="submit" value="Realizar Captura >>">
+  <br>
+    </form>
+    <br>
+    <a href="../">&laquo; volver a index</a>
+
+
+    <script>
+      var authorizationCode = localStorage.getItem('authorizationCode');
+      document.getElementById("authorizationCode").value = authorizationCode;
+
+      var amount = localStorage.getItem('captureAmount');
+      document.getElementById("captureAmount").value = amount;
+
+      var buyOrder = localStorage.getItem('buyOrder');
+      document.getElementById("buyOrder").value = buyOrder;
+      //localStorage.clear();
+    </script>
+
+
+<%
+   when "capture"
+
+     buyOrder          = params[:buyOrder]
+     authorizationCode = params[:authorizationCode]
+     captureAmount     = params[:captureAmount]
+
+     #llamada Capture
+     result = webpay.getCaptureTransaction.capture(authorizationCode, captureAmount, buyOrder)
+
+     if(result['error_desc'] == 'TRX_OK')
+         authorizationCodeResp = result['authorizationCode']
+         authorizationDate = result['authorizationDate']
+         capturedAmount 	 = result['capturedAmount']
+         token 	           = result['token']
+     end
+
+%>
+    <h2>Step: Capture</h2>
+    <div style="background-color:lightyellow;">
+      <h3>request</h3>
+      "[token_ws] =  <%=token%> "
+    </div>
+    <div style="background-color:lightgrey;">
+      <h3>result</h3>
+
+      <% if result['error_desc'] == 'TRX_OK'%>
+          [authorizationCode] = "<%= authorizationCodeResp %>", [authorizationDate] = "<%= authorizationDate %>", [capturedAmount] = "<%= capturedAmount %>", [token] = "<%= token %>"
+      <%else %>[error] = <%=result['error_desc']%>
+      <%end%>
+
+    </div>
+    <% if authorizationCodeResp != nil%>
+        <p><samp>Pago ACEPTADO por webpay (se deben guardar datos para mostrar voucher)</samp></p>
+        <br>
+    <% else  %>
+        <p><samp>Pago RECHAZADO por webpay.</samp></p>
+        <br>
+    <% end  %>
+
+    <a href="../">&laquo; volver a index</a>
+
+<%
+   end
+%>
+

@@ -1,0 +1,17 @@
+v1.0
+- Version Inicial. Medio de pago transaccion normal
+
+v1.1
+- Se incluyen medios de pago: OneClick, MallNormal, Nullify, Capture, Complete.
+
+v2.0
+- Se actualiza con nuevo ambiente de integracion
+
+v2.0.1
+- Se actualiza codigo comercio OneClick
+
+v2.0.2
+- Se actualiza codigo de servidor Webpay
+
+v2.0.3
+- Se actualiza codigo de servidor Webpay
