@@ -30,14 +30,15 @@
          * [Configuración](#configuración-1)
          * [Iniciar Inscripción (initInscription)](#iniciar-inscripción-initinscription)
          * [Finalizar Inscripción (finishInscription)](#finalizar-inscripción-finishinscription)
+         * [Autorizar (authorize)](#autorizar-authorize)
          * [Reversa (codeReverseOneClick)](#reversa-codereverseoneclick)
       * [Anulación](#anulación)
          * [Configuración](#configuración-2)
          * [Anular (Nullify)](#anular-nullify)
          * [Códigos de error](#códigos-de-error)
+      * [Transacción Webpay captura diferida](#transacción-webpay-captura-diferida)
          * [Configuración](#configuración-3)
          * [Captura (capture)](#captura-capture)
-
 # Descripción
 La librería webpay-sdk-ruby está orientada a usuarios con conocimiento intermedios de programación que buscan desarrollar sus propias soluciones de e-commerce. Estas encapsulan métodos de comunicación y cifrado para facilitar la integración de desarrollos propietarios al portal de pago Webpay.
 
@@ -581,7 +582,7 @@ last4CardDigits |String | Los últimos 4 dígitos de la tarjeta.
 responseCode | String | Código que identifica autorización.
 tbkUser | String | Identificador único de la inscripción.
 
-### Autorizar (authorize)
+### Autorizar (authorize)
 
 Permite realizar transacciones de pago. Retorna el resultado de la autorización. Este método que debe ser ejecutado, cada vez que el usuario selecciona pagar con Oneclick.
 
@@ -740,7 +741,7 @@ Código|Descripción
 311|Monto a capturar excede el monto autorizado
 315|Error del autorizador
 
-##  Transacción Webpay captura diferida
+## Transacción Webpay captura diferida
 
 Este método permite a todo comercio habilitado realizar capturas de una transacción autorizada sin captura en plataforma Webpay 3G. El método contempla una única captura por cada autorización. Para ello se deberá indicar los datos asociados a la transacción de venta con autorización sin captura y el monto requerido para capturar el cual debe ser menor o igual al monto originalmente autorizado.
 
