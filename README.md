@@ -37,7 +37,6 @@
          * [Códigos de error](#códigos-de-error)
          * [Configuración](#configuración-3)
          * [Captura (capture)](#captura-capture)
-      * [Ejecucion de DEMO](#ejecucion-de-demo)
 
 # Descripción
 La librería webpay-sdk-ruby está orientada a usuarios con conocimiento intermedios de programación que buscan desarrollar sus propias soluciones de e-commerce. Estas encapsulan métodos de comunicación y cifrado para facilitar la integración de desarrollos propietarios al portal de pago Webpay.
@@ -97,6 +96,24 @@ De esta manera se tendrá disponible para ser usada en el proyecto.
 2. En el navegador ir a la dirección: http://localhost:3000/, se desplegará un menú para ejecución del pago normal:
 
     ![Pantalla con navegador en el proyecto de ejemplo](doc/img/img_web01.png)
+
+
+Para ejecucion en WINDOWS se debe setear certificado de confianza Global.pem con comando:
+
+```
+set SSL_CERT_FILE=C:\{Ruta sample}\sample\app\views\certificates\globalCA.pem
+```
+
+Datos de Prueba ambiente Integraciónn.
+
+Tarjeta VISA
+ Nro 4051885600446623
+ CVV 123
+
+RUT 11.111.111-1
+
+Clave 123
+
 
 # Conceptos Básicos
 
@@ -775,30 +792,5 @@ authorizationCode | String | Código autorización de captura.
 authorizationDate | dateTime | Fecha y hora de la autorización.
 capturedAmount | decimal | Monto capturado.
 token | String | Token identificador transacción.
-
-## Ejecucion de DEMO
-
-Para la ejecucion del demo se debe ejecutar 
-"rails server" ubicado dentro de la carpeta del sample para levantar el server rails.
-luego se debe abrir un navegador en la direccion localhost:3000 u otra que se haya configurado previamente.
-
-Nota: El demo fue editado con el IDE ruby Mine 8, se puede abrir directamente con este IDE para edicion o pruebas.
-
-Para ejecucion en WINDOWS se debe setear certificado de confianza Global.pem con comando:
-```
-set SSL_CERT_FILE=C:\{Ruta sample}\sample\app\views\certificates\globalCA.pem
-```
-
-Datos de Prueba ambiente Integraciónn.
-
-Tarjeta VISA
- Nro 4051885600446623
- CVV 123
-
-RUT 11.111.111-1
-
-Clave 123
-
-
 
 
