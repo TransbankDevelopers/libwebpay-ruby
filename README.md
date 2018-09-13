@@ -705,13 +705,13 @@ config.webpay_cert = webpay_cert
 webpay = libwebpay.getWebpay(config)
 ```
 
-### Captura (capture)
+### Captura (capture)
 
- ```ruby
- result = webpay.getCaptureTransaction.capture(authorizationCode, captureAmount, buyOrder)
- ```
+```ruby
+result = webpay.getCaptureTransaction.capture(authorizationCode, captureAmount, buyOrder)
+```
 
- Parámetro | Tipo | Descripción
+Parámetro | Tipo | Descripción
 --------- | ------- | -----------
 authorizationCode | String | Código de autorización de la transacción que se requiere capturar.
 captureAmount | decimal | Monto autorizado de la transacción que se requiere capturar.
