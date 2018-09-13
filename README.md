@@ -54,7 +54,7 @@ Esta librería fue desarrolla para trabajar sobre un ambiente web conectado a in
 
 # Instalación
 
-Descarga el sdk y guárdala en una carpeta de tu computador.
+[Descarga el sdk](https://github.com/TransbankDevelopers/libwebpay-ruby/archive/v2.0.3.zip) y guárdala en una carpeta de tu computador.
 
 Descomprima el contenido dentro del directorio webroot de su servidor.
 
