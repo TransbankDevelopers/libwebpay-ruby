@@ -172,6 +172,9 @@ class WebpayNormal
       transactiondate 	= response_document.xpath("//transactiondate").text
       urlredirection 		= response_document.xpath("//urlredirection").text
       vci 							= response_document.xpath("//vci").text
+      sharesnumber					= response_document.xpath("//sharesnumber").text
+      sharesamount					= response_document.xpath("//sharesamount").text
+      sessionid					    = response_document.xpath("//sessionid").text
 
       response_array ={
           "accountingdate" 		=> accountingdate.to_s,
@@ -185,6 +188,10 @@ class WebpayNormal
           "transactiondate" 	=> transactiondate.to_s,
           "urlredirection" 		=> urlredirection.to_s,
           "vci" 							=> vci.to_s,
+          "sharesnumber"		=> sharesnumber.to_s,
+          "sharesamount"		=> sharesamount.to_s,
+          "sessionid"		    => sessionid.to_s,
+
           "error_desc"        => 'TRX_OK'
       }
 
