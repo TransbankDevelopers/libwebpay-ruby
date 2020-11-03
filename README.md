@@ -1,4 +1,5 @@
-   * [Descripción](#descripción)
+# Este repositorio está descontinuado y no se recomienda su uso.    
+* [Descripción](#descripción)
    * [Requisitos](#requisitos)
    * [Instalación](#instalación)
       * [Nota: Instalación en Windows](#nota-instalación-en-windows)
